@@ -1,0 +1,36 @@
+from fastapi import FastAPI
+import requests
+
+app = FastAPI()
+
+CBP_URL = "https://bwt.cbp.gov/api/waittimes"
+
+@app.get("/wait-times")
+def get_wait_times():
+    try:
+        response = requests.get(CBP_URL)
+        data = response.json()
+
+        # Simplify output for all ports
+        summary = []
+        for port in data:
+            item = {
+                "crossing_name": port.get("crossing_name", ""),
+                "port_name": port.get("port_name", ""),
+                "border": port.get("border", ""),
+                "date": port.get("date", ""),
+                "time": port.get("time", ""),
+                "passenger_vehicle_lanes": port.get("passenger_vehicle_lanes", {}),
+                "commercial_vehicle_lanes": port.get("commercial_vehicle_lanes", {}),
+                "pedestrian_lanes": port.get("pedestrian_lanes", {}),
+                "notice": port.get("construction_notice", "")
+            }
+            summary.append(item)
+
+        return {
+            "ports_found": len(summary),
+            "all_ports_summary": summary
+        }
+
+    except Exception as e:
+        return {"error": str(e)}

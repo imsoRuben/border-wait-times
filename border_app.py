@@ -1,5 +1,7 @@
 from fastapi import FastAPI
 import requests
+import uvicorn
+import os
 
 app = FastAPI()
 
@@ -34,3 +36,8 @@ def get_wait_times():
 
     except Exception as e:
         return {"error": str(e)}
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    print(f"✅ Starting app on port {port}")
+    uvicorn.run("border_app:app", host="0.0.0.0", port=port)

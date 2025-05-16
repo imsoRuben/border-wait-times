@@ -42,6 +42,16 @@ def get_wait_times():
     except Exception as e:
         return {"error": str(e)}
 
+@app.get("/ports")
+def get_all_ports():
+    try:
+        response = requests.get(CBP_URL)
+        data = response.json()
+        port_names = sorted({port.get("crossing_name", "Unknown") for port in data})
+        return {"available_ports": port_names}
+    except Exception as e:
+        return {"error": str(e)}
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     print(f"✅ Starting app on port {port}")

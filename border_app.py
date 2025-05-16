@@ -3,9 +3,14 @@ import requests
 import uvicorn
 import os
 
+
 app = FastAPI()
 
 CBP_URL = "https://bwt.cbp.gov/api/waittimes"
+
+@app.get("/")
+def read_root():
+    return {"message": "Border Wait Times API is live. Go to /wait-times"}
 
 @app.get("/wait-times")
 def get_wait_times():

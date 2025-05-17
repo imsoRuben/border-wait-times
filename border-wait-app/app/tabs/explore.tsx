@@ -1,8 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { Text, View, ActivityIndicator, FlatList, StyleSheet, RefreshControl } from 'react-native';
+interface WaitTimeItem {
+  crossing_name: string;
+  port_name: string;
+  border: string;
+  date: string;
+  time: string;
+  passenger_vehicle_lanes?: {
+    standard_lanes?: { delay_minutes?: number };
+  };
+  commercial_vehicle_lanes?: {
+    standard_lanes?: { delay_minutes?: number };
+  };
+  pedestrian_lanes?: {
+    standard_lanes?: { delay_minutes?: number };
+  };
+  construction_notice?: string;
+}
+
 
 export default function ExploreScreen() {
-  const [data, setData] = useState([]);
+  const [data, setData] = useState<WaitTimeItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
@@ -37,7 +55,7 @@ export default function ExploreScreen() {
     return styles.text;
   };
 
-  const renderItem = ({ item }) => (
+  const renderItem = ({ item }: { item: WaitTimeItem }) => (
     <View style={styles.item}>
       <Text style={styles.title}>{item.crossing_name} ({item.port_name})</Text>
       <Text style={getDelayStyle(item.passenger_vehicle_lanes?.standard_lanes?.delay_minutes)}>
@@ -67,7 +85,7 @@ export default function ExploreScreen() {
   return (
     <FlatList
       data={data}
-      keyExtractor={(item) => `${item.port_name}-${item.crossing_name}`}
+      keyExtractor={(item) => `${item.port_name}-${item.crossing_name}-${item.date}`}
       renderItem={renderItem}
       contentContainerStyle={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}

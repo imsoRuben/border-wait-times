@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import SkeletonPlaceholder from 'react-native-skeleton-placeholder';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View as SkeletonView } from 'react-native';
 import * as Location from 'expo-location';
-import { Text, View, ActivityIndicator, FlatList, StyleSheet, RefreshControl, TextInput } from 'react-native';
+import moment from 'moment';
+import { Text, View, ActivityIndicator, FlatList, StyleSheet, RefreshControl, TextInput, ActionSheetIOS, Pressable } from 'react-native';
+
+
 interface WaitTimeItem {
   crossing_name: string;
   port_name: string;
@@ -36,7 +38,8 @@ export default function ExploreScreen() {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [sortBy, setSortBy] = useState<'proximity' | 'alphabetical'>('proximity');
+  const [sortBy, setSortBy] = useState<'proximity' | 'alphabetical' | 'passenger' | 'pedestrian' | 'commercial'>('proximity');
+  const [lastFetched, setLastFetched] = useState<Date | null>(null);
 
   const fetchWaitTimes = async () => {
     try {
@@ -44,6 +47,7 @@ export default function ExploreScreen() {
       const response = await fetch('https://border-wait-times.onrender.com/wait-times');
       const json = await response.json();
       setData(json.all_ports_summary);
+      setLastFetched(new Date());
     } catch (err) {
       setError('Failed to load wait times.');
     } finally {
@@ -133,7 +137,24 @@ export default function ExploreScreen() {
           cleanPortLabel(b.crossing_name, b.port_name)
         );
       }
+
+      if (sortBy === 'passenger') {
+        return (a.passenger_vehicle_lanes?.standard_lanes?.delay_minutes ?? Infinity) -
+               (b.passenger_vehicle_lanes?.standard_lanes?.delay_minutes ?? Infinity);
+      }
+
+      if (sortBy === 'pedestrian') {
+        return (a.pedestrian_lanes?.standard_lanes?.delay_minutes ?? Infinity) -
+               (b.pedestrian_lanes?.standard_lanes?.delay_minutes ?? Infinity);
+      }
+
+      if (sortBy === 'commercial') {
+        return (a.commercial_vehicle_lanes?.standard_lanes?.delay_minutes ?? Infinity) -
+               (b.commercial_vehicle_lanes?.standard_lanes?.delay_minutes ?? Infinity);
+      }
+
       if (!userLocation) return 0;
+
       const portCoords: Record<string, { lat: number; lon: number }> = {
         'Deconcini': { lat: 31.3337, lon: -110.9398 },
         'Mariposa': { lat: 31.4640, lon: -110.9616 },
@@ -148,8 +169,8 @@ export default function ExploreScreen() {
       return distA - distB;
     });
 
-  const lastUpdated = filteredData.length > 0
-    ? `${filteredData[0].date} ${filteredData[0].time}`
+  const lastUpdated = lastFetched
+    ? moment(lastFetched).fromNow()
     : '';
 
   const renderItem = ({ item }: { item: WaitTimeItem }) => {
@@ -167,6 +188,7 @@ export default function ExploreScreen() {
           <Text style={styles.notice}>🚧 {item.construction_notice}</Text>
         ) : null}
 
+        {/* Passenger Lane */}
         <Text style={getDelayStyle(passengerDelay)}>
           <Text style={{ fontWeight: 'bold' }}>🚗 Passenger:</Text>{' '}
           {passengerDelay != null ? (
@@ -181,6 +203,7 @@ export default function ExploreScreen() {
           )}
         </Text>
 
+        {/* Pedestrian Lane */}
         <Text style={getDelayStyle(pedestrianDelay)}>
           <Text style={{ fontWeight: 'bold' }}>🚶 Pedestrian:</Text>{' '}
           {pedestrianDelay != null ? (
@@ -195,6 +218,7 @@ export default function ExploreScreen() {
           )}
         </Text>
 
+        {/* Commercial Lane */}
         <Text style={getDelayStyle(commercialDelay)}>
           <Text style={{ fontWeight: 'bold' }}>🚛 Commercial:</Text>{' '}
           {commercialDelay != null ? (
@@ -215,22 +239,14 @@ export default function ExploreScreen() {
   if (loading) {
     return (
       <View style={{ padding: 16 }}>
-        <SkeletonPlaceholder
-          borderRadius={4}
-          backgroundColor="#E1E9EE"
-          highlightColor="#F2F8FC"
-        >
-          <SkeletonPlaceholder.Item>
-            {[...Array(5)].map((_, index) => (
-              <View key={index} style={{ marginBottom: 16 }}>
-                <View style={{ width: 200, height: 20, marginBottom: 6 }} />
-                <View style={{ width: 250, height: 16, marginBottom: 4 }} />
-                <View style={{ width: 250, height: 16, marginBottom: 4 }} />
-                <View style={{ width: 250, height: 16 }} />
-              </View>
-            ))}
-          </SkeletonPlaceholder.Item>
-        </SkeletonPlaceholder>
+        {[...Array(5)].map((_, index) => (
+          <View key={index} style={{ marginBottom: 16 }}>
+            <SkeletonView style={{ width: 200, height: 20, backgroundColor: '#E1E9EE', marginBottom: 6 }} />
+            <SkeletonView style={{ width: 250, height: 16, backgroundColor: '#E1E9EE', marginBottom: 4 }} />
+            <SkeletonView style={{ width: 250, height: 16, backgroundColor: '#E1E9EE', marginBottom: 4 }} />
+            <SkeletonView style={{ width: 250, height: 16, backgroundColor: '#E1E9EE' }} />
+          </View>
+        ))}
       </View>
     );
   }
@@ -254,12 +270,38 @@ export default function ExploreScreen() {
         value={searchQuery}
         onChangeText={setSearchQuery}
       />
-      <Text
-        style={{ fontWeight: 'bold', color: 'blue', marginBottom: 8 }}
-        onPress={() => setSortBy(prev => prev === 'proximity' ? 'alphabetical' : 'proximity')}
-      >
-        🧭 Sorted by: {sortBy === 'proximity' ? 'Proximity' : 'A-Z'} (tap to change)
-      </Text>
+      <View style={{ marginBottom: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Pressable
+          style={{ flexDirection: 'row', alignItems: 'center' }}
+          onPress={() =>
+            ActionSheetIOS.showActionSheetWithOptions(
+              {
+                options: [
+                  'Cancel',
+                  'Proximity',
+                  'Alphabetical',
+                  'Passenger Wait',
+                  'Pedestrian Wait',
+                  'Commercial Wait',
+                ],
+                cancelButtonIndex: 0,
+              },
+              (buttonIndex) => {
+                if (buttonIndex === 1) setSortBy('proximity');
+                else if (buttonIndex === 2) setSortBy('alphabetical');
+                else if (buttonIndex === 3) setSortBy('passenger');
+                else if (buttonIndex === 4) setSortBy('pedestrian');
+                else if (buttonIndex === 5) setSortBy('commercial');
+              }
+            )
+          }
+        >
+          <Text style={{ fontSize: 14, color: '#555', marginRight: 4 }}>Sort by:</Text>
+          <Text style={{ fontSize: 14, color: '#007aff', fontWeight: '500' }}>
+            {sortBy.charAt(0).toUpperCase() + sortBy.slice(1)}
+          </Text>
+        </Pressable>
+      </View>
       <FlatList
         data={filteredData}
         keyExtractor={(item) => `${item.port_name}-${item.crossing_name}-${item.date}`}
@@ -365,5 +407,15 @@ const styles = StyleSheet.create({
     color: '#aa6600',
     marginBottom: 4,
     fontStyle: 'italic',
+  },
+  picker: {
+    height: 40,
+    width: '100%',
+    marginBottom: 8,
+  },
+  statusText: {
+    fontSize: 14,
+    color: '#555',
+    marginBottom: 4,
   },
 });

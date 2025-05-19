@@ -2,11 +2,12 @@ from fastapi import FastAPI
 import requests
 import uvicorn
 import os
+import xmltodict
 
 
 app = FastAPI()
 
-CBP_URL = "https://bwt.cbp.gov/api/waittimes"
+CBP_URL = "https://bwt.cbp.gov/xml/bwt.xml"
 
 @app.get("/")
 def read_root():
@@ -16,11 +17,11 @@ def read_root():
 def get_wait_times():
     try:
         response = requests.get(CBP_URL)
-        data = response.json()
+        data = xmltodict.parse(response.content)
+        ports = data.get("border_wait_times", {}).get("port", [])
 
-        # Simplify output for all ports
         summary = []
-        for port in data:
+        for port in ports:
             item = {
                 "crossing_name": port.get("crossing_name", ""),
                 "port_name": port.get("port_name", ""),
@@ -46,8 +47,9 @@ def get_wait_times():
 def get_all_ports():
     try:
         response = requests.get(CBP_URL)
-        data = response.json()
-        port_names = sorted({port.get("crossing_name", "Unknown") for port in data})
+        data = xmltodict.parse(response.content)
+        ports = data.get("border_wait_times", {}).get("port", [])
+        port_names = sorted({port.get("crossing_name", "Unknown") for port in ports})
         return {"available_ports": port_names}
     except Exception as e:
         return {"error": str(e)}

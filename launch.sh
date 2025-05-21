@@ -3,4 +3,4 @@ echo "🔍 ENV VARS:"
 printenv
 
 echo "🚀 Launching app..."
-python3 border_app.py
+python3 border-wait-app/border_app.py

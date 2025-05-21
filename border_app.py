@@ -17,7 +17,11 @@ def read_root():
 def get_wait_times():
     try:
         response = requests.get(CBP_URL)
+        print("✅ Raw XML response:")
+        print(response.text[:1000])  # Limit to first 1000 characters
         data = xmltodict.parse(response.content)
+        print("✅ Parsed XML data:")
+        print(data)
         ports = data.get("border_wait_times", {}).get("port", [])
 
         summary = []

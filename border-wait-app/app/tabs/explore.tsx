@@ -47,9 +47,12 @@ export default function ExploreScreen() {
       setError('');
       const response = await fetch('https://border-wait-times.onrender.com/wait-times');
       const json = await response.json();
+      console.log("API Response:", json);
+      console.log("Ports returned:", json?.all_ports_summary?.length);
       setData(json.all_ports_summary);
       setLastFetched(new Date());
     } catch (err) {
+      console.error("API Error:", err);
       setError('Failed to load wait times.');
     } finally {
       setLoading(false);

@@ -18,7 +18,7 @@ def get_wait_times():
     try:
         response = requests.get(CBP_URL)
         data = xmltodict.parse(response.content)
-        ports = data.get("border_wait_times", {}).get("port", [])
+        ports = data.get("border_wait_time", {}).get("port", [])
 
         summary = []
         for port in ports:
@@ -48,7 +48,7 @@ def get_all_ports():
     try:
         response = requests.get(CBP_URL)
         data = xmltodict.parse(response.content)
-        ports = data.get("border_wait_times", {}).get("port", [])
+        ports = data.get("border_wait_time", {}).get("port", [])
         port_names = sorted({port.get("crossing_name", "Unknown") for port in ports})
         return {"available_ports": port_names}
     except Exception as e:

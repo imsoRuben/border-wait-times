@@ -4,6 +4,7 @@ import { View as SkeletonView } from 'react-native';
 import * as Location from 'expo-location';
 import moment from 'moment';
 import { Text, View, ActivityIndicator, FlatList, StyleSheet, RefreshControl, TextInput, ActionSheetIOS, Pressable } from 'react-native';
+import { useRouter } from 'expo-router';
 
 
 interface WaitTimeItem {
@@ -13,7 +14,9 @@ interface WaitTimeItem {
   date: string;
   time: string;
   passenger_vehicle_lanes?: {
-    standard_lanes?: { delay_minutes?: number };
+    standard_lanes?: { delay_minutes?: number | string };
+    ready_lanes?: { delay_minutes?: number | string };
+    sentri_lanes?: { delay_minutes?: number | string };
   };
   commercial_vehicle_lanes?: {
     standard_lanes?: { delay_minutes?: number };
@@ -25,11 +28,12 @@ interface WaitTimeItem {
 }
 
 const cleanPortLabel = (crossing: string, port: string): string => {
-  const cleanedCrossing = crossing.replace(/^\(|\)$/g, '').trim();
-  if (!cleanedCrossing || cleanedCrossing.toLowerCase() === port.toLowerCase()) {
-    return port;
+  const cleanedCrossing = (crossing ?? '').replace(/^\(|\)$/g, '').trim();
+  const safePort = port ?? '';
+  if (!cleanedCrossing || cleanedCrossing.toLowerCase() === safePort.toLowerCase()) {
+    return safePort;
   }
-  return `${cleanedCrossing} (${port})`;
+  return `${cleanedCrossing} (${safePort})`;
 };
 
 export default function ExploreScreen() {
@@ -39,8 +43,9 @@ export default function ExploreScreen() {
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [sortBy, setSortBy] = useState<'proximity' | 'alphabetical' | 'passenger' | 'pedestrian' | 'commercial'>('proximity');
+  const [sortBy, setSortBy] = useState<'proximity' | 'alphabetical' | 'passenger' | 'pedestrian' | 'commercial' | 'ready' | 'sentri'>('proximity');
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
+  const router = useRouter();
 
   const fetchWaitTimes = async () => {
     try {
@@ -49,6 +54,7 @@ export default function ExploreScreen() {
       const json = await response.json();
       console.log("API Response:", json);
       console.log("Ports returned:", json?.all_ports_summary?.length);
+      console.log("Sample Port Data:", JSON.stringify(json.all_ports_summary?.[0], null, 2));
       setData(json.all_ports_summary);
       setLastFetched(new Date());
     } catch (err) {
@@ -132,8 +138,8 @@ export default function ExploreScreen() {
 
   const filteredData = [...uniqueData]
     .filter(item =>
-      item.crossing_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.port_name.toLowerCase().includes(searchQuery.toLowerCase())
+      (item.crossing_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (item.port_name?.toLowerCase() || '').includes(searchQuery.toLowerCase())
     )
     .sort((a, b) => {
       if (sortBy === 'alphabetical') {
@@ -143,18 +149,38 @@ export default function ExploreScreen() {
       }
 
       if (sortBy === 'passenger') {
-        return (a.passenger_vehicle_lanes?.standard_lanes?.delay_minutes ?? Infinity) -
-               (b.passenger_vehicle_lanes?.standard_lanes?.delay_minutes ?? Infinity);
+        return (
+          parseInt(String(a.passenger_vehicle_lanes?.standard_lanes?.delay_minutes ?? '9999'), 10) -
+          parseInt(String(b.passenger_vehicle_lanes?.standard_lanes?.delay_minutes ?? '9999'), 10)
+        );
+      }
+
+      if (sortBy === 'ready') {
+        return (
+          parseInt(String(a.passenger_vehicle_lanes?.ready_lanes?.delay_minutes ?? '9999'), 10) -
+          parseInt(String(b.passenger_vehicle_lanes?.ready_lanes?.delay_minutes ?? '9999'), 10)
+        );
+      }
+
+      if (sortBy === 'sentri') {
+        return (
+          parseInt(String(a.passenger_vehicle_lanes?.sentri_lanes?.delay_minutes ?? '9999'), 10) -
+          parseInt(String(b.passenger_vehicle_lanes?.sentri_lanes?.delay_minutes ?? '9999'), 10)
+        );
       }
 
       if (sortBy === 'pedestrian') {
-        return (a.pedestrian_lanes?.standard_lanes?.delay_minutes ?? Infinity) -
-               (b.pedestrian_lanes?.standard_lanes?.delay_minutes ?? Infinity);
+        return (
+          (a.pedestrian_lanes?.standard_lanes?.delay_minutes ?? Infinity) -
+          (b.pedestrian_lanes?.standard_lanes?.delay_minutes ?? Infinity)
+        );
       }
 
       if (sortBy === 'commercial') {
-        return (a.commercial_vehicle_lanes?.standard_lanes?.delay_minutes ?? Infinity) -
-               (b.commercial_vehicle_lanes?.standard_lanes?.delay_minutes ?? Infinity);
+        return (
+          (a.commercial_vehicle_lanes?.standard_lanes?.delay_minutes ?? Infinity) -
+          (b.commercial_vehicle_lanes?.standard_lanes?.delay_minutes ?? Infinity)
+        );
       }
 
       if (!userLocation) return 0;
@@ -178,65 +204,116 @@ export default function ExploreScreen() {
     : '';
 
   const renderItem = ({ item }: { item: WaitTimeItem }) => {
-    const passengerDelay = item.passenger_vehicle_lanes?.standard_lanes?.delay_minutes;
-    const commercialDelay = item.commercial_vehicle_lanes?.standard_lanes?.delay_minutes;
-    const pedestrianDelay = item.pedestrian_lanes?.standard_lanes?.delay_minutes;
+    console.log('Delays for', item.port_name, {
+      passenger: item?.passenger_vehicle_lanes?.standard_lanes?.delay_minutes,
+      ready: item?.passenger_vehicle_lanes?.ready_lanes?.delay_minutes,
+      sentri: item?.passenger_vehicle_lanes?.sentri_lanes?.delay_minutes,
+      pedestrian: item?.pedestrian_lanes?.standard_lanes?.delay_minutes,
+      commercial: item?.commercial_vehicle_lanes?.standard_lanes?.delay_minutes,
+    });
+    const parseDelay = (value: any) =>
+      value === null || value === undefined || value === '' ? null : parseInt(value, 10);
+
+    const passengerDelay = parseDelay(item?.passenger_vehicle_lanes?.standard_lanes?.delay_minutes);
+    const readyDelay = parseDelay(item?.passenger_vehicle_lanes?.ready_lanes?.delay_minutes);
+    const sentriDelay = parseDelay(item?.passenger_vehicle_lanes?.sentri_lanes?.delay_minutes);
+    const commercialDelay = parseDelay(item?.commercial_vehicle_lanes?.standard_lanes?.delay_minutes);
+    const pedestrianDelay = parseDelay(item?.pedestrian_lanes?.standard_lanes?.delay_minutes);
 
     return (
-      <View style={styles.item}>
-        <Text style={styles.cornerBadge}>
-          {typeof passengerDelay === 'number' ? (passengerDelay > 20 ? '📈' : '📉') : ''}
-        </Text>
-        <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">{cleanPortLabel(item.crossing_name, item.port_name)}</Text>
-        {item.construction_notice ? (
-          <Text style={styles.notice}>🚧 {item.construction_notice}</Text>
-        ) : null}
+      <Pressable
+        onPress={() =>
+          router.push({
+            pathname: '../port-detail',
+            params: { data: JSON.stringify(item) },
+          })
+        }
+      >
+        <View style={styles.item}>
+          <Text style={styles.cornerBadge}>
+            {typeof passengerDelay === 'number' ? (passengerDelay > 20 ? '📈' : '📉') : ''}
+          </Text>
+          <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">{cleanPortLabel(item.crossing_name, item.port_name)}</Text>
+          {item.construction_notice ? (
+            <Text style={styles.notice}>🚧 {item.construction_notice}</Text>
+          ) : null}
 
-        {/* Passenger Lane */}
-        <Text style={getDelayStyle(passengerDelay)}>
-          <Text style={{ fontWeight: 'bold' }}>🚗 Passenger:</Text>{' '}
-          {typeof passengerDelay === 'number' ? (
-            <>
-              <Text style={getDelayStyle(passengerDelay)}>{`${passengerDelay} min `}</Text>
-              <Text style={[styles.delayNote, passengerDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
-                {passengerDelay > 20 ? 'Longer than usual' : 'Shorter than usual'}
-              </Text>
-            </>
-          ) : (
-            <Text style={styles.noData}>No data</Text>
-          )}
-        </Text>
+          {/* Passenger Lane */}
+          <Text style={getDelayStyle(passengerDelay ?? undefined)}>
+            <Text style={{ fontWeight: 'bold' }}>🚗 Passenger:</Text>{' '}
+            {typeof passengerDelay === 'number' ? (
+              <>
+                <Text style={getDelayStyle(passengerDelay ?? undefined)}>{`${passengerDelay} min `}</Text>
+                <Text style={[styles.delayNote, passengerDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
+                  {passengerDelay > 20 ? 'Longer than usual' : 'Shorter than usual'}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.noData}>No data</Text>
+            )}
+          </Text>
 
-        {/* Pedestrian Lane */}
-        <Text style={getDelayStyle(pedestrianDelay)}>
-          <Text style={{ fontWeight: 'bold' }}>🚶 Pedestrian:</Text>{' '}
-          {typeof pedestrianDelay === 'number' ? (
-            <>
-              <Text style={getDelayStyle(pedestrianDelay)}>{`${pedestrianDelay} min `}</Text>
-              <Text style={[styles.delayNote, pedestrianDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
-                {pedestrianDelay > 20 ? 'Longer than usual' : 'Shorter than usual'}
-              </Text>
-            </>
-          ) : (
-            <Text style={styles.noData}>No data</Text>
-          )}
-        </Text>
+          {/* Ready Lane */}
+          <Text style={getDelayStyle(readyDelay ?? undefined)}>
+            <Text style={{ fontWeight: 'bold' }}>⚡ Ready Lane:</Text>{' '}
+            {typeof readyDelay === 'number' ? (
+              <>
+                <Text style={getDelayStyle(readyDelay ?? undefined)}>{`${readyDelay} min `}</Text>
+                <Text style={[styles.delayNote, readyDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
+                  {readyDelay > 20 ? 'Longer than usual' : 'Shorter than usual'}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.noData}>No data</Text>
+            )}
+          </Text>
 
-        {/* Commercial Lane */}
-        <Text style={getDelayStyle(commercialDelay)}>
-          <Text style={{ fontWeight: 'bold' }}>🚛 Commercial:</Text>{' '}
-          {typeof commercialDelay === 'number' ? (
-            <>
-              <Text style={getDelayStyle(commercialDelay)}>{`${commercialDelay} min `}</Text>
-              <Text style={[styles.delayNote, commercialDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
-                {commercialDelay > 20 ? 'Longer than usual' : 'Shorter than usual'}
-              </Text>
-            </>
-          ) : (
-            <Text style={styles.noData}>No data</Text>
-          )}
-        </Text>
-      </View>
+          {/* SENTRI Lane */}
+          <Text style={getDelayStyle(sentriDelay ?? undefined)}>
+            <Text style={{ fontWeight: 'bold' }}>🛂 SENTRI:</Text>{' '}
+            {typeof sentriDelay === 'number' ? (
+              <>
+                <Text style={getDelayStyle(sentriDelay ?? undefined)}>{`${sentriDelay} min `}</Text>
+                <Text style={[styles.delayNote, sentriDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
+                  {sentriDelay > 20 ? 'Longer than usual' : 'Shorter than usual'}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.noData}>No data</Text>
+            )}
+          </Text>
+
+          {/* Pedestrian Lane */}
+          <Text style={getDelayStyle(pedestrianDelay ?? undefined)}>
+            <Text style={{ fontWeight: 'bold' }}>🚶 Pedestrian:</Text>{' '}
+            {typeof pedestrianDelay === 'number' ? (
+              <>
+                <Text style={getDelayStyle(pedestrianDelay ?? undefined)}>{`${pedestrianDelay} min `}</Text>
+                <Text style={[styles.delayNote, pedestrianDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
+                  {pedestrianDelay > 20 ? 'Longer than usual' : 'Shorter than usual'}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.noData}>No data</Text>
+            )}
+          </Text>
+
+          {/* Commercial Lane */}
+          <Text style={getDelayStyle(commercialDelay ?? undefined)}>
+            <Text style={{ fontWeight: 'bold' }}>🚛 Commercial:</Text>{' '}
+            {typeof commercialDelay === 'number' ? (
+              <>
+                <Text style={getDelayStyle(commercialDelay ?? undefined)}>{`${commercialDelay} min `}</Text>
+                <Text style={[styles.delayNote, commercialDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
+                  {commercialDelay > 20 ? 'Longer than usual' : 'Shorter than usual'}
+                </Text>
+              </>
+            ) : (
+              <Text style={styles.noData}>No data</Text>
+            )}
+          </Text>
+        </View>
+      </Pressable>
     );
   };
 

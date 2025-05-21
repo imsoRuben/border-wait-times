@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import * as React from 'react';
+import { useEffect, useState } from 'react';
 import { View as SkeletonView } from 'react-native';
 import * as Location from 'expo-location';
 import moment from 'moment';
@@ -191,7 +192,7 @@ export default function ExploreScreen() {
         {/* Passenger Lane */}
         <Text style={getDelayStyle(passengerDelay)}>
           <Text style={{ fontWeight: 'bold' }}>🚗 Passenger:</Text>{' '}
-          {passengerDelay != null ? (
+          {typeof passengerDelay === 'number' ? (
             <>
               <Text style={getDelayStyle(passengerDelay)}>{`${passengerDelay} min `}</Text>
               <Text style={[styles.delayNote, passengerDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
@@ -206,7 +207,7 @@ export default function ExploreScreen() {
         {/* Pedestrian Lane */}
         <Text style={getDelayStyle(pedestrianDelay)}>
           <Text style={{ fontWeight: 'bold' }}>🚶 Pedestrian:</Text>{' '}
-          {pedestrianDelay != null ? (
+          {typeof pedestrianDelay === 'number' ? (
             <>
               <Text style={getDelayStyle(pedestrianDelay)}>{`${pedestrianDelay} min `}</Text>
               <Text style={[styles.delayNote, pedestrianDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
@@ -221,7 +222,7 @@ export default function ExploreScreen() {
         {/* Commercial Lane */}
         <Text style={getDelayStyle(commercialDelay)}>
           <Text style={{ fontWeight: 'bold' }}>🚛 Commercial:</Text>{' '}
-          {commercialDelay != null ? (
+          {typeof commercialDelay === 'number' ? (
             <>
               <Text style={getDelayStyle(commercialDelay)}>{`${commercialDelay} min `}</Text>
               <Text style={[styles.delayNote, commercialDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
@@ -240,12 +241,14 @@ export default function ExploreScreen() {
     return (
       <View style={{ padding: 16 }}>
         {[...Array(5)].map((_, index) => (
-          <View key={index} style={{ marginBottom: 16 }}>
-            <SkeletonView style={{ width: 200, height: 20, backgroundColor: '#E1E9EE', marginBottom: 6 }} />
-            <SkeletonView style={{ width: 250, height: 16, backgroundColor: '#E1E9EE', marginBottom: 4 }} />
-            <SkeletonView style={{ width: 250, height: 16, backgroundColor: '#E1E9EE', marginBottom: 4 }} />
-            <SkeletonView style={{ width: 250, height: 16, backgroundColor: '#E1E9EE' }} />
-          </View>
+          <React.Fragment key={index}>
+            <View style={{ marginBottom: 16 }}>
+              <SkeletonView style={{ width: 200, height: 20, backgroundColor: '#E1E9EE', marginBottom: 6 }} />
+              <SkeletonView style={{ width: 250, height: 16, backgroundColor: '#E1E9EE', marginBottom: 4 }} />
+              <SkeletonView style={{ width: 250, height: 16, backgroundColor: '#E1E9EE', marginBottom: 4 }} />
+              <SkeletonView style={{ width: 250, height: 16, backgroundColor: '#E1E9EE' }} />
+            </View>
+          </React.Fragment>
         ))}
       </View>
     );

@@ -3,9 +3,12 @@ import requests
 import uvicorn
 import os
 import xmltodict
-
+from supabase import create_client, Client
 
 app = FastAPI()
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 CBP_URL = "https://bwt.cbp.gov/xml/bwt.xml"
 
@@ -34,6 +37,7 @@ def get_wait_times():
                 "notice": port.get("construction_notice", "")
             }
             summary.append(item)
+            supabase.table("wait_times").insert(item).execute()
 
         return {
             "ports_found": len(summary),

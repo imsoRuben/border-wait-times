@@ -27,15 +27,31 @@ def get_wait_times():
         for port in ports:
             passenger = port.get("passenger_vehicle_lanes", {}).get("standard", {})
             passenger_ready = port.get("passenger_vehicle_lanes", {}).get("ready", {})
+            if not passenger_ready:
+                print(f"⚠️ No 'passenger_ready' data for: {port.get('port_name')}")
             passenger_sentri = port.get("passenger_vehicle_lanes", {}).get("sentri", {})
+            if not passenger_sentri:
+                print(f"⚠️ No 'passenger_sentri' data for: {port.get('port_name')}")
 
             commercial = port.get("commercial_vehicle_lanes", {}).get("standard", {})
+            if not commercial:
+                print(f"⚠️ No 'commercial_standard' data for: {port.get('port_name')}")
             commercial_fast = port.get("commercial_vehicle_lanes", {}).get("fast", {})
+            if not commercial_fast:
+                print(f"⚠️ No 'commercial_fast' data for: {port.get('port_name')}")
 
             pedestrian = port.get("pedestrian_lanes", {}).get("standard", {})
+            if not pedestrian:
+                print(f"⚠️ No 'pedestrian_standard' data for: {port.get('port_name')}")
             pedestrian_ready = port.get("pedestrian_lanes", {}).get("ready", {})
+            if not pedestrian_ready:
+                print(f"⚠️ No 'pedestrian_ready' data for: {port.get('port_name')}")
             pedestrian_sentri = port.get("pedestrian_lanes", {}).get("sentri", {})
+            if not pedestrian_sentri:
+                print(f"⚠️ No 'pedestrian_sentri' data for: {port.get('port_name')}")
             pedestrian_ready_sentri = port.get("pedestrian_lanes", {}).get("ready_sentri", {})
+            if not pedestrian_ready_sentri:
+                print(f"⚠️ No 'pedestrian_ready_sentri' data for: {port.get('port_name')}")
 
             item = {
                 "crossing_name": port.get("crossing_name", ""),
@@ -88,6 +104,13 @@ def get_wait_times():
                 "pedestrian_ready_sentri_update_time": pedestrian_ready_sentri.get("update_time"),
                 "full_xml": port,
             }
+
+            # Normalize empty strings to None
+            item = {k: (v if v not in ("", None) else None) for k, v in item.items()}
+
+            # Log if important delay or lane data is missing
+            if any(v is None for k, v in item.items() if "delay" in k or "lanes_open" in k):
+                print(f"⚠️ Incomplete data for {item['port_name']}: {[(k, v) for k, v in item.items() if v is None]}")
 
             known_keys = {
                 "crossing_name", "port_name", "port_code", "state", "region", "hours", "border",

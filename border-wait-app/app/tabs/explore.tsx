@@ -7,23 +7,37 @@ import { Text, View, ActivityIndicator, FlatList, StyleSheet, RefreshControl, Te
 import { useRouter } from 'expo-router';
 
 
+interface LaneDetail {
+  delay_minutes?: number | string;
+  lanes_open?: number;
+}
+
+interface PassengerVehicleLanes {
+  standard_lanes?: LaneDetail;
+  ready_lanes?: LaneDetail;
+  sentri_lanes?: LaneDetail;
+  NEXUS_lanes?: LaneDetail;
+}
+
+interface CommercialVehicleLanes {
+  standard_lanes?: LaneDetail;
+  FAST_lanes?: LaneDetail;
+}
+
+interface PedestrianLanes {
+  standard_lanes?: LaneDetail;
+  ready_lanes?: LaneDetail;
+}
+
 interface WaitTimeItem {
   crossing_name: string;
   port_name: string;
   border: string;
   date: string;
   time: string;
-  passenger_vehicle_lanes?: {
-    standard_lanes?: { delay_minutes?: number | string };
-    ready_lanes?: { delay_minutes?: number | string };
-    sentri_lanes?: { delay_minutes?: number | string };
-  };
-  commercial_vehicle_lanes?: {
-    standard_lanes?: { delay_minutes?: number };
-  };
-  pedestrian_lanes?: {
-    standard_lanes?: { delay_minutes?: number };
-  };
+  passenger_vehicle_lanes?: PassengerVehicleLanes;
+  commercial_vehicle_lanes?: CommercialVehicleLanes;
+  pedestrian_lanes?: PedestrianLanes;
   construction_notice?: string;
 }
 
@@ -171,15 +185,15 @@ export default function ExploreScreen() {
 
       if (sortBy === 'pedestrian') {
         return (
-          (a.pedestrian_lanes?.standard_lanes?.delay_minutes ?? Infinity) -
-          (b.pedestrian_lanes?.standard_lanes?.delay_minutes ?? Infinity)
+          (Number(a.pedestrian_lanes?.standard_lanes?.delay_minutes) ?? Infinity) -
+          (Number(b.pedestrian_lanes?.standard_lanes?.delay_minutes) ?? Infinity)
         );
       }
 
       if (sortBy === 'commercial') {
         return (
-          (a.commercial_vehicle_lanes?.standard_lanes?.delay_minutes ?? Infinity) -
-          (b.commercial_vehicle_lanes?.standard_lanes?.delay_minutes ?? Infinity)
+          (Number(a.commercial_vehicle_lanes?.standard_lanes?.delay_minutes) ?? Infinity) -
+          (Number(b.commercial_vehicle_lanes?.standard_lanes?.delay_minutes) ?? Infinity)
         );
       }
 
@@ -192,10 +206,10 @@ export default function ExploreScreen() {
         'Otay Mesa': { lat: 32.5515, lon: -116.9335 },
         'Paso Del Norte': { lat: 31.7586, lon: -106.4869 },
       };
-      const aCoords = portCoords[a.crossing_name] || { lat: 0, lon: 0 };
-      const bCoords = portCoords[b.crossing_name] || { lat: 0, lon: 0 };
-      const distA = getDistance(userLocation.latitude, userLocation.longitude, aCoords.lat, aCoords.lon);
-      const distB = getDistance(userLocation.latitude, userLocation.longitude, bCoords.lat, bCoords.lon);
+      const aCoords = portCoords[a.crossing_name] ?? { lat: 0, lon: 0 };
+      const bCoords = portCoords[b.crossing_name] ?? { lat: 0, lon: 0 };
+      const distA = getDistance(userLocation.latitude, userLocation.longitude, Number(aCoords.lat), Number(aCoords.lon));
+      const distB = getDistance(userLocation.latitude, userLocation.longitude, Number(bCoords.lat), Number(bCoords.lon));
       return distA - distB;
     });
 
@@ -204,21 +218,47 @@ export default function ExploreScreen() {
     : '';
 
   const renderItem = ({ item }: { item: WaitTimeItem }) => {
-    console.log('Delays for', item.port_name, {
-      passenger: item?.passenger_vehicle_lanes?.standard_lanes?.delay_minutes,
-      ready: item?.passenger_vehicle_lanes?.ready_lanes?.delay_minutes,
-      sentri: item?.passenger_vehicle_lanes?.sentri_lanes?.delay_minutes,
-      pedestrian: item?.pedestrian_lanes?.standard_lanes?.delay_minutes,
-      commercial: item?.commercial_vehicle_lanes?.standard_lanes?.delay_minutes,
-    });
-    const parseDelay = (value: any) =>
-      value === null || value === undefined || value === '' ? null : parseInt(value, 10);
+    // Helper for formatting
+    const formatDelay = (delay: any) =>
+      delay === null || delay === undefined || delay === '' ? null : parseInt(delay, 10);
 
-    const passengerDelay = parseDelay(item?.passenger_vehicle_lanes?.standard_lanes?.delay_minutes);
-    const readyDelay = parseDelay(item?.passenger_vehicle_lanes?.ready_lanes?.delay_minutes);
-    const sentriDelay = parseDelay(item?.passenger_vehicle_lanes?.sentri_lanes?.delay_minutes);
-    const commercialDelay = parseDelay(item?.commercial_vehicle_lanes?.standard_lanes?.delay_minutes);
-    const pedestrianDelay = parseDelay(item?.pedestrian_lanes?.standard_lanes?.delay_minutes);
+    // Commercial Vehicles
+    const commGenDelay = formatDelay(item?.commercial_vehicle_lanes?.standard_lanes?.delay_minutes);
+    const commGenLanes = item?.commercial_vehicle_lanes?.standard_lanes?.lanes_open;
+    const commFastDelay = formatDelay(item?.commercial_vehicle_lanes?.FAST_lanes?.delay_minutes);
+    const commFastLanes = item?.commercial_vehicle_lanes?.FAST_lanes?.lanes_open;
+
+    // Passenger Vehicles
+    const passGenDelay = formatDelay(item?.passenger_vehicle_lanes?.standard_lanes?.delay_minutes);
+    const passGenLanes = item?.passenger_vehicle_lanes?.standard_lanes?.lanes_open;
+    const passReadyDelay = formatDelay(item?.passenger_vehicle_lanes?.ready_lanes?.delay_minutes);
+    const passReadyLanes = item?.passenger_vehicle_lanes?.ready_lanes?.lanes_open;
+    const passNexusDelay = formatDelay(item?.passenger_vehicle_lanes?.NEXUS_lanes?.delay_minutes);
+    const passNexusLanes = item?.passenger_vehicle_lanes?.NEXUS_lanes?.lanes_open;
+
+    // Pedestrian
+    const pedGenDelay = formatDelay(item?.pedestrian_lanes?.standard_lanes?.delay_minutes);
+    const pedGenLanes = item?.pedestrian_lanes?.standard_lanes?.lanes_open;
+    const pedReadyDelay = formatDelay(item?.pedestrian_lanes?.ready_lanes?.delay_minutes);
+    const pedReadyLanes = item?.pedestrian_lanes?.ready_lanes?.lanes_open;
+
+    // For the badge
+    const passengerDelay = passGenDelay;
+
+    // Updated helper for lane info display (properly handles and displays lane counts)
+    const formatLaneInfo = (delay: any, lanes: any) => {
+      const parsedDelay = typeof delay === 'string' ? parseInt(delay) : delay;
+      const parsedLanes = typeof lanes === 'string' ? parseInt(lanes) : lanes;
+
+      const hasDelay = typeof parsedDelay === 'number' && !isNaN(parsedDelay);
+      const hasLanes = typeof parsedLanes === 'number' && !isNaN(parsedLanes) && parsedLanes >= 0;
+
+      if (!hasDelay && !hasLanes) return 'Not available';
+      if (hasDelay && hasLanes) return `${parsedDelay} min delay • ${parsedLanes} lane${parsedLanes === 1 ? '' : 's'} open`;
+      if (hasDelay) return `${parsedDelay} min delay`;
+      if (hasLanes) return `${parsedLanes} lane${parsedLanes === 1 ? '' : 's'} open`;
+      return 'Not available';
+    };
 
     return (
       <Pressable
@@ -230,87 +270,39 @@ export default function ExploreScreen() {
         }
       >
         <View style={styles.item}>
-          <Text style={styles.cornerBadge}>
-            {typeof passengerDelay === 'number' ? (passengerDelay > 20 ? '📈' : '📉') : ''}
-          </Text>
-          <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">{cleanPortLabel(item.crossing_name, item.port_name)}</Text>
-          {item.construction_notice ? (
-            <Text style={styles.notice}>🚧 {item.construction_notice}</Text>
-          ) : null}
-
-          {/* Passenger Lane */}
-          <Text style={getDelayStyle(passengerDelay ?? undefined)}>
-            <Text style={{ fontWeight: 'bold' }}>🚗 Passenger:</Text>{' '}
-            {typeof passengerDelay === 'number' ? (
-              <>
-                <Text style={getDelayStyle(passengerDelay ?? undefined)}>{`${passengerDelay} min `}</Text>
-                <Text style={[styles.delayNote, passengerDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
-                  {passengerDelay > 20 ? 'Longer than usual' : 'Shorter than usual'}
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.noData}>No data</Text>
-            )}
+          <Text style={styles.cornerBadge}></Text>
+          <Text style={styles.title} numberOfLines={1} ellipsizeMode="tail">
+            {cleanPortLabel(item.crossing_name, item.port_name)}
           </Text>
 
-          {/* Ready Lane */}
-          <Text style={getDelayStyle(readyDelay ?? undefined)}>
-            <Text style={{ fontWeight: 'bold' }}>⚡ Ready Lane:</Text>{' '}
-            {typeof readyDelay === 'number' ? (
-              <>
-                <Text style={getDelayStyle(readyDelay ?? undefined)}>{`${readyDelay} min `}</Text>
-                <Text style={[styles.delayNote, readyDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
-                  {readyDelay > 20 ? 'Longer than usual' : 'Shorter than usual'}
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.noData}>No data</Text>
-            )}
+          {/* Passenger Vehicles */}
+          <Text style={{ fontWeight: 'bold', marginTop: 12, marginBottom: 4 }}>🚗 Passenger Vehicles</Text>
+          <Text style={styles.text}>
+            <Text>General:</Text> {formatLaneInfo(passGenDelay, passGenLanes)}
+          </Text>
+          <Text style={styles.text}>
+            <Text>ReadyLane:</Text> {formatLaneInfo(passReadyDelay, passReadyLanes)}
+          </Text>
+          <Text style={styles.text}>
+            <Text>NEXUS:</Text> {formatLaneInfo(passNexusDelay, passNexusLanes)}
           </Text>
 
-          {/* SENTRI Lane */}
-          <Text style={getDelayStyle(sentriDelay ?? undefined)}>
-            <Text style={{ fontWeight: 'bold' }}>🛂 SENTRI:</Text>{' '}
-            {typeof sentriDelay === 'number' ? (
-              <>
-                <Text style={getDelayStyle(sentriDelay ?? undefined)}>{`${sentriDelay} min `}</Text>
-                <Text style={[styles.delayNote, sentriDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
-                  {sentriDelay > 20 ? 'Longer than usual' : 'Shorter than usual'}
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.noData}>No data</Text>
-            )}
+          {/* Pedestrian */}
+          <Text style={{ fontWeight: 'bold', marginTop: 12, marginBottom: 4 }}>🚶 Pedestrian</Text>
+          <Text style={styles.text}>
+            <Text>General:</Text> {formatLaneInfo(pedGenDelay, pedGenLanes)}
+          </Text>
+          <Text style={styles.text}>
+            <Text>ReadyLane:</Text> {formatLaneInfo(pedReadyDelay, pedReadyLanes)}
           </Text>
 
-          {/* Pedestrian Lane */}
-          <Text style={getDelayStyle(pedestrianDelay ?? undefined)}>
-            <Text style={{ fontWeight: 'bold' }}>🚶 Pedestrian:</Text>{' '}
-            {typeof pedestrianDelay === 'number' ? (
-              <>
-                <Text style={getDelayStyle(pedestrianDelay ?? undefined)}>{`${pedestrianDelay} min `}</Text>
-                <Text style={[styles.delayNote, pedestrianDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
-                  {pedestrianDelay > 20 ? 'Longer than usual' : 'Shorter than usual'}
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.noData}>No data</Text>
-            )}
+          {/* Commercial Vehicles */}
+          <Text style={{ fontWeight: 'bold', marginTop: 12, marginBottom: 4 }}>🚛 Commercial Vehicles</Text>
+          <Text style={styles.text}>
+            <Text>General:</Text> {formatLaneInfo(commGenDelay, commGenLanes)}
           </Text>
-
-          {/* Commercial Lane */}
-          <Text style={getDelayStyle(commercialDelay ?? undefined)}>
-            <Text style={{ fontWeight: 'bold' }}>🚛 Commercial:</Text>{' '}
-            {typeof commercialDelay === 'number' ? (
-              <>
-                <Text style={getDelayStyle(commercialDelay ?? undefined)}>{`${commercialDelay} min `}</Text>
-                <Text style={[styles.delayNote, commercialDelay > 20 ? styles.delayNoteLong : styles.delayNoteShort]}>
-                  {commercialDelay > 20 ? 'Longer than usual' : 'Shorter than usual'}
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.noData}>No data</Text>
-            )}
+          <Text style={styles.text}>
+            <Text>FAST:</Text> {formatLaneInfo(commFastDelay, commFastLanes)}
           </Text>
         </View>
       </Pressable>

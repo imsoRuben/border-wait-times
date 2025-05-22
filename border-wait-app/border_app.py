@@ -37,7 +37,8 @@ def get_wait_times():
                 "notice": port.get("construction_notice", "")
             }
             summary.append(item)
-            supabase.table("wait_times").insert(item).execute()
+            result = supabase.table("border_wait_history").insert(item).execute()
+            print("🔁 Insert result:", result)
 
         return {
             "ports_found": len(summary),

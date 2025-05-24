@@ -45,16 +45,16 @@ def get_wait_times():
             if not commercial_fast:
                 print(f"⚠️ No 'commercial_fast' data for: {port.get('port_name')}")
 
-            pedestrian = port.get("pedestrian_lanes", {}).get("standard", {})
+            pedestrian = port.get("pedestrian_lanes", {}).get("standard_lanes", {})
             if not pedestrian:
                 print(f"⚠️ No 'pedestrian_standard' data for: {port.get('port_name')}")
-            pedestrian_ready = port.get("pedestrian_lanes", {}).get("ready", {})
+            pedestrian_ready = port.get("pedestrian_lanes", {}).get("ready_lanes", {})
             if not pedestrian_ready:
                 print(f"⚠️ No 'pedestrian_ready' data for: {port.get('port_name')}")
-            pedestrian_sentri = port.get("pedestrian_lanes", {}).get("sentri", {})
+            pedestrian_sentri = port.get("pedestrian_lanes", {}).get("sentri_lanes", {})
             if not pedestrian_sentri:
                 print(f"⚠️ No 'pedestrian_sentri' data for: {port.get('port_name')}")
-            pedestrian_ready_sentri = port.get("pedestrian_lanes", {}).get("ready_sentri", {})
+            pedestrian_ready_sentri = port.get("pedestrian_lanes", {}).get("ready_sentri_lanes", {})
             if not pedestrian_ready_sentri:
                 print(f"⚠️ No 'pedestrian_ready_sentri' data for: {port.get('port_name')}")
 

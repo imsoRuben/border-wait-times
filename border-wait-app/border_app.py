@@ -5,6 +5,11 @@ import os
 import xmltodict
 from supabase import create_client, Client
 
+def clean_value(val):
+    if val in ("", "N/A", "Lanes Closed", None):
+        return None
+    return val
+
 app = FastAPI()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -67,43 +72,50 @@ def get_wait_times():
                 "note": port.get("note", ""),
                 "port_status": port.get("port_status", ""),
 
-                "passenger_standard_delay_minutes": passenger.get("delay_minutes"),
-                "passenger_standard_lanes_open": passenger.get("lanes_open"),
-                "passenger_standard_update_time": passenger.get("update_time"),
+                "passenger_standard_delay_minutes": clean_value(passenger.get("delay_minutes")),
+                "passenger_standard_lanes_open": clean_value(passenger.get("lanes_open")),
+                "passenger_standard_update_time": clean_value(passenger.get("update_time")),
 
-                "passenger_ready_delay_minutes": passenger_ready.get("delay_minutes"),
-                "passenger_ready_lanes_open": passenger_ready.get("lanes_open"),
-                "passenger_ready_update_time": passenger_ready.get("update_time"),
+                "passenger_ready_delay_minutes": clean_value(passenger_ready.get("delay_minutes")),
+                "passenger_ready_lanes_open": clean_value(passenger_ready.get("lanes_open")),
+                "passenger_ready_update_time": clean_value(passenger_ready.get("update_time")),
 
-                "passenger_sentri_delay_minutes": passenger_sentri.get("delay_minutes"),
-                "passenger_sentri_lanes_open": passenger_sentri.get("lanes_open"),
-                "passenger_sentri_update_time": passenger_sentri.get("update_time"),
+                "passenger_sentri_delay_minutes": clean_value(passenger_sentri.get("delay_minutes")),
+                "passenger_sentri_lanes_open": clean_value(passenger_sentri.get("lanes_open")),
+                "passenger_sentri_update_time": clean_value(passenger_sentri.get("update_time")),
 
-                "commercial_standard_delay_minutes": commercial.get("delay_minutes"),
-                "commercial_standard_lanes_open": commercial.get("lanes_open"),
-                "commercial_standard_update_time": commercial.get("update_time"),
+                "commercial_standard_delay_minutes": clean_value(commercial.get("delay_minutes")),
+                "commercial_standard_lanes_open": clean_value(commercial.get("lanes_open")),
+                "commercial_standard_update_time": clean_value(commercial.get("update_time")),
 
-                "commercial_fast_delay_minutes": commercial_fast.get("delay_minutes"),
-                "commercial_fast_lanes_open": commercial_fast.get("lanes_open"),
-                "commercial_fast_update_time": commercial_fast.get("update_time"),
+                "commercial_fast_delay_minutes": clean_value(commercial_fast.get("delay_minutes")),
+                "commercial_fast_lanes_open": clean_value(commercial_fast.get("lanes_open")),
+                "commercial_fast_update_time": clean_value(commercial_fast.get("update_time")),
 
-                "pedestrian_standard_delay_minutes": pedestrian.get("delay_minutes"),
-                "pedestrian_standard_lanes_open": pedestrian.get("lanes_open"),
-                "pedestrian_standard_update_time": pedestrian.get("update_time"),
+                "pedestrian_standard_delay_minutes": clean_value(pedestrian.get("delay_minutes")),
+                "pedestrian_standard_lanes_open": clean_value(pedestrian.get("lanes_open")),
+                "pedestrian_standard_update_time": clean_value(pedestrian.get("update_time")),
 
-                "pedestrian_ready_delay_minutes": pedestrian_ready.get("delay_minutes"),
-                "pedestrian_ready_lanes_open": pedestrian_ready.get("lanes_open"),
-                "pedestrian_ready_update_time": pedestrian_ready.get("update_time"),
+                "pedestrian_ready_delay_minutes": clean_value(pedestrian_ready.get("delay_minutes")),
+                "pedestrian_ready_lanes_open": clean_value(pedestrian_ready.get("lanes_open")),
+                "pedestrian_ready_update_time": clean_value(pedestrian_ready.get("update_time")),
 
-                "pedestrian_sentri_delay_minutes": pedestrian_sentri.get("delay_minutes"),
-                "pedestrian_sentri_lanes_open": pedestrian_sentri.get("lanes_open"),
-                "pedestrian_sentri_update_time": pedestrian_sentri.get("update_time"),
+                "pedestrian_sentri_delay_minutes": clean_value(pedestrian_sentri.get("delay_minutes")),
+                "pedestrian_sentri_lanes_open": clean_value(pedestrian_sentri.get("lanes_open")),
+                "pedestrian_sentri_update_time": clean_value(pedestrian_sentri.get("update_time")),
 
-                "pedestrian_ready_sentri_delay_minutes": pedestrian_ready_sentri.get("delay_minutes"),
-                "pedestrian_ready_sentri_lanes_open": pedestrian_ready_sentri.get("lanes_open"),
-                "pedestrian_ready_sentri_update_time": pedestrian_ready_sentri.get("update_time"),
+                "pedestrian_ready_sentri_delay_minutes": clean_value(pedestrian_ready_sentri.get("delay_minutes")),
+                "pedestrian_ready_sentri_lanes_open": clean_value(pedestrian_ready_sentri.get("lanes_open")),
+                "pedestrian_ready_sentri_update_time": clean_value(pedestrian_ready_sentri.get("update_time")),
                 "full_xml": port,
             }
+
+            if item["port_name"] == "Nogales":
+                print("🧪 Debug Nogales:", {
+                    "passenger_ready_delay": item["passenger_ready_delay_minutes"],
+                    "passenger_ready_lanes": item["passenger_ready_lanes_open"],
+                    "passenger_ready_update": item["passenger_ready_update_time"]
+                })
 
             # Normalize empty strings to None
             item = {k: (v if v not in ("", None) else None) for k, v in item.items()}

@@ -112,17 +112,60 @@ def get_wait_times():
 
             if item["port_name"] == "Nogales":
                 print("🧪 Debug Nogales:", {
-                    "passenger_ready_delay": item["passenger_ready_delay_minutes"],
-                    "passenger_ready_lanes": item["passenger_ready_lanes_open"],
-                    "passenger_ready_update": item["passenger_ready_update_time"]
+                    "passenger_standard": {
+                        "delay": item["passenger_standard_delay_minutes"],
+                        "lanes": item["passenger_standard_lanes_open"],
+                        "update": item["passenger_standard_update_time"]
+                    },
+                    "passenger_ready": {
+                        "delay": item["passenger_ready_delay_minutes"],
+                        "lanes": item["passenger_ready_lanes_open"],
+                        "update": item["passenger_ready_update_time"]
+                    },
+                    "passenger_sentri": {
+                        "delay": item["passenger_sentri_delay_minutes"],
+                        "lanes": item["passenger_sentri_lanes_open"],
+                        "update": item["passenger_sentri_update_time"]
+                    },
+                    "commercial_standard": {
+                        "delay": item["commercial_standard_delay_minutes"],
+                        "lanes": item["commercial_standard_lanes_open"],
+                        "update": item["commercial_standard_update_time"]
+                    },
+                    "commercial_fast": {
+                        "delay": item["commercial_fast_delay_minutes"],
+                        "lanes": item["commercial_fast_lanes_open"],
+                        "update": item["commercial_fast_update_time"]
+                    },
+                    "pedestrian_standard": {
+                        "delay": item["pedestrian_standard_delay_minutes"],
+                        "lanes": item["pedestrian_standard_lanes_open"],
+                        "update": item["pedestrian_standard_update_time"]
+                    },
+                    "pedestrian_ready": {
+                        "delay": item["pedestrian_ready_delay_minutes"],
+                        "lanes": item["pedestrian_ready_lanes_open"],
+                        "update": item["pedestrian_ready_update_time"]
+                    },
+                    "pedestrian_sentri": {
+                        "delay": item["pedestrian_sentri_delay_minutes"],
+                        "lanes": item["pedestrian_sentri_lanes_open"],
+                        "update": item["pedestrian_sentri_update_time"]
+                    },
+                    "pedestrian_ready_sentri": {
+                        "delay": item["pedestrian_ready_sentri_delay_minutes"],
+                        "lanes": item["pedestrian_ready_sentri_lanes_open"],
+                        "update": item["pedestrian_ready_sentri_update_time"]
+                    }
                 })
 
             # Normalize empty strings to None (keep 0 intact)
             item = {k: (v if v not in ("", None) else None) if not isinstance(v, (int, float)) else v for k, v in item.items()}
 
-            # Log if important delay or lane data is missing
-            if any(v is None for k, v in item.items() if "delay" in k or "lanes_open" in k):
-                print(f"⚠️ Incomplete data for {item['port_name']}: {[(k, v) for k, v in item.items() if v is None]}")
+            # Log if important delay or lane data is missing, with enhanced logging for which field and value
+            for k, v in item.items():
+                if ("delay" in k or "lanes_open" in k) and v is None:
+                    print(f"⚠️ None value for {k} at port {item['port_name']}: expected a value but got None")
 
             known_keys = {
                 "crossing_name", "port_name", "port_code", "state", "region", "hours", "border",

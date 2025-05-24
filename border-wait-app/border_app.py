@@ -6,7 +6,7 @@ import xmltodict
 from supabase import create_client, Client
 
 def clean_value(val):
-    if val in ("", "N/A", "Lanes Closed", None):
+    if val is None or isinstance(val, str) and val.strip() in ("", "N/A", "Lanes Closed"):
         return None
     return val
 
@@ -117,8 +117,8 @@ def get_wait_times():
                     "passenger_ready_update": item["passenger_ready_update_time"]
                 })
 
-            # Normalize empty strings to None
-            item = {k: (v if v not in ("", None) else None) for k, v in item.items()}
+            # Normalize empty strings to None (keep 0 intact)
+            item = {k: (v if v not in ("", None) else None) if not isinstance(v, (int, float)) else v for k, v in item.items()}
 
             # Log if important delay or lane data is missing
             if any(v is None for k, v in item.items() if "delay" in k or "lanes_open" in k):

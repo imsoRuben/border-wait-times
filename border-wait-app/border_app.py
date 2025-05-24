@@ -30,18 +30,18 @@ def get_wait_times():
 
         summary = []
         for port in ports:
-            passenger = port.get("passenger_vehicle_lanes", {}).get("standard", {})
-            passenger_ready = port.get("passenger_vehicle_lanes", {}).get("ready", {})
+            passenger = port.get("passenger_vehicle_lanes", {}).get("standard_lanes", {})
+            passenger_ready = port.get("passenger_vehicle_lanes", {}).get("ready_lanes", {})
             if not passenger_ready:
                 print(f"⚠️ No 'passenger_ready' data for: {port.get('port_name')}")
-            passenger_sentri = port.get("passenger_vehicle_lanes", {}).get("sentri", {})
+            passenger_sentri = port.get("passenger_vehicle_lanes", {}).get("NEXUS_SENTRI_lanes", {})
             if not passenger_sentri:
                 print(f"⚠️ No 'passenger_sentri' data for: {port.get('port_name')}")
 
-            commercial = port.get("commercial_vehicle_lanes", {}).get("standard", {})
+            commercial = port.get("commercial_vehicle_lanes", {}).get("standard_lanes", {})
             if not commercial:
                 print(f"⚠️ No 'commercial_standard' data for: {port.get('port_name')}")
-            commercial_fast = port.get("commercial_vehicle_lanes", {}).get("fast", {})
+            commercial_fast = port.get("commercial_vehicle_lanes", {}).get("FAST_lanes", {})
             if not commercial_fast:
                 print(f"⚠️ No 'commercial_fast' data for: {port.get('port_name')}")
 

@@ -16,5 +16,5 @@ typing_extensions>=4.13.2
 urllib3>=2.4.0
 uvicorn>=0.34.2
 xmltodict>=0.14.2
-supabase-py==2.1.1
+supabase==2.15.1
 python-dotenv

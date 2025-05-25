@@ -63,20 +63,30 @@ export default function ExploreScreen() {
   const [lastFetched, setLastFetched] = useState<Date | null>(null);
   const router = useRouter();
 
+  // Helper to wrap fetch with a timeout (default 12 seconds)
+  const fetchWithTimeout = (url: string, timeout = 12000): Promise<Response> => {
+    return Promise.race([
+      fetch(url),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Request timed out")), timeout)
+      ),
+    ]) as Promise<Response>;
+  };
+
   const fetchWaitTimes = async () => {
     try {
-      setError('');
-      const response = await fetch('https://border-wait-times.onrender.com/wait-times');
+      console.log("🚀 Starting fetchWaitTimes...");
+      const response = await fetchWithTimeout('https://border-wait-times.onrender.com/wait-times');
+      console.log("✅ Response received");
       const json = await response.json();
-      console.log("API Response:", json);
-      console.log("Ports returned:", json?.all_ports_summary?.length);
-      console.log("Sample Port Data:", JSON.stringify(json.all_ports_summary?.[0], null, 2));
+      console.log("📦 Parsed JSON:", json);
       setData(json.all_ports_summary);
       setLastFetched(new Date());
-    } catch (err) {
-      console.error("API Error:", err);
-      setError('Failed to load wait times.');
+    } catch (err: any) {
+      console.error("❌ fetchWaitTimes error:", err?.message || err);
+      setError("Failed to load wait times.");
     } finally {
+      console.log("🔁 fetchWaitTimes complete");
       setLoading(false);
       setRefreshing(false);
     }
@@ -321,6 +331,12 @@ export default function ExploreScreen() {
     return (
       <View style={styles.container}>
         <Text style={styles.error}>{error}</Text>
+        <Pressable
+          onPress={fetchWaitTimes}
+          style={{ marginTop: 12, padding: 10, backgroundColor: '#007aff', borderRadius: 6 }}
+        >
+          <Text style={{ color: 'white', textAlign: 'center' }}>Retry</Text>
+        </Pressable>
       </View>
     );
   }

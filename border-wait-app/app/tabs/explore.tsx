@@ -221,12 +221,13 @@ export default function ExploreScreen() {
   const formatDelay = (delay: any) =>
     delay === null || delay === undefined || delay === '' ? null : parseInt(delay, 10);
 
-  // Mapping lane keys to display names
+  // Mapping lane keys to display names, including alternate backend keys
   const labelMap: Record<string, string> = {
     standard_lanes: 'General',
     ready_lanes: 'ReadyLane',
     sentri_lanes: 'SENTRI',
     NEXUS_lanes: 'NEXUS',
+    NEXUS_SENTRI_lanes: 'SENTRI', // Backend may use this key for SENTRI lanes
     FAST_lanes: 'FAST',
   };
 
@@ -243,14 +244,19 @@ export default function ExploreScreen() {
     return 'Not available';
   };
 
-  // Helper to render a lane group dynamically
+  // Helper to render a lane group dynamically, with backend lane key mapping
   const renderLaneGroup = (laneGroup: any) => {
     if (!laneGroup) return (
       <Text style={styles.noData}>No data</Text>
     );
     return Object.keys(laneGroup).map((laneKey) => {
       const laneDetail = laneGroup[laneKey];
-      const label = labelMap[laneKey] || laneKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      // Map alternate backend keys to expected display label
+      let displayLabelKey = laneKey;
+      if (laneKey === 'NEXUS_SENTRI_lanes') {
+        displayLabelKey = 'NEXUS_SENTRI_lanes';
+      }
+      const label = labelMap[displayLabelKey] || laneKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
       return (
         <Text style={styles.text} key={laneKey}>
           <Text style={{ fontWeight: 'bold' }}>{label}:</Text>

@@ -170,6 +170,50 @@ def get_wait_times():
             # Normalize empty strings to None (keep 0 intact)
             item = {k: (v if v not in ("", None) else None) if not isinstance(v, (int, float)) else v for k, v in item.items()}
 
+            # Add nested lane structures for frontend
+            item["passenger_vehicle_lanes"] = {
+                "standard_lanes": {
+                    "delay_minutes": item.pop("passenger_standard_delay_minutes"),
+                    "lanes_open": item.pop("passenger_standard_lanes_open"),
+                },
+                "ready_lanes": {
+                    "delay_minutes": item.pop("passenger_ready_delay_minutes"),
+                    "lanes_open": item.pop("passenger_ready_lanes_open"),
+                },
+                "sentri_lanes": {
+                    "delay_minutes": item.pop("passenger_sentri_delay_minutes"),
+                    "lanes_open": item.pop("passenger_sentri_lanes_open"),
+                },
+            }
+            item["commercial_vehicle_lanes"] = {
+                "standard_lanes": {
+                    "delay_minutes": item.pop("commercial_standard_delay_minutes"),
+                    "lanes_open": item.pop("commercial_standard_lanes_open"),
+                },
+                "FAST_lanes": {
+                    "delay_minutes": item.pop("commercial_fast_delay_minutes"),
+                    "lanes_open": item.pop("commercial_fast_lanes_open"),
+                },
+            }
+            item["pedestrian_lanes"] = {
+                "standard_lanes": {
+                    "delay_minutes": item.pop("pedestrian_standard_delay_minutes"),
+                    "lanes_open": item.pop("pedestrian_standard_lanes_open"),
+                },
+                "ready_lanes": {
+                    "delay_minutes": item.pop("pedestrian_ready_delay_minutes"),
+                    "lanes_open": item.pop("pedestrian_ready_lanes_open"),
+                },
+                "sentri_lanes": {
+                    "delay_minutes": item.pop("pedestrian_sentri_delay_minutes"),
+                    "lanes_open": item.pop("pedestrian_sentri_lanes_open"),
+                },
+                "ready_sentri_lanes": {
+                    "delay_minutes": item.pop("pedestrian_ready_sentri_delay_minutes"),
+                    "lanes_open": item.pop("pedestrian_ready_sentri_lanes_open"),
+                },
+            }
+
             # Log if important delay or lane data is missing, with enhanced logging for which field and value
             for k, v in item.items():
                 if ("delay" in k or "lanes_open" in k) and v is None:

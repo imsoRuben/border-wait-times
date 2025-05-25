@@ -207,6 +207,95 @@ def get_all_ports():
     except Exception as e:
         return {"error": str(e)}
 
+@app.post("/record-wait-times")
+def record_wait_times():
+    try:
+        response = requests.get(CBP_URL)
+        data = xmltodict.parse(response.content)
+        ports = data.get("border_wait_time", {}).get("port", [])
+        inserted = 0
+        skipped = 0
+
+        for port in ports:
+            port_code = port.get("port_code")
+            cbp_date = port.get("date")
+            cbp_time = port.get("time")
+
+            # Check if entry already exists
+            existing = supabase.table("border_wait_history") \
+                .select("id") \
+                .eq("port_code", port_code) \
+                .eq("date", cbp_date) \
+                .eq("time", cbp_time) \
+                .execute()
+
+            if existing.data:
+                skipped += 1
+                continue
+
+            item = {
+                "crossing_name": port.get("crossing_name", ""),
+                "port_name": port.get("port_name", ""),
+                "port_code": port_code,
+                "state": port.get("state", ""),
+                "region": port.get("region", ""),
+                "hours": port.get("hours", ""),
+                "border": port.get("border", ""),
+                "date": cbp_date or None,
+                "time": cbp_time or None,
+                "notice": port.get("construction_notice", ""),
+                "note": port.get("note", ""),
+                "port_status": port.get("port_status", ""),
+
+                "passenger_standard_delay_minutes": clean_value(port.get("passenger_vehicle_lanes", {}).get("standard_lanes", {}).get("delay_minutes")),
+                "passenger_standard_lanes_open": clean_value(port.get("passenger_vehicle_lanes", {}).get("standard_lanes", {}).get("lanes_open")),
+                "passenger_standard_update_time": clean_value(port.get("passenger_vehicle_lanes", {}).get("standard_lanes", {}).get("update_time")),
+
+                "passenger_ready_delay_minutes": clean_value(port.get("passenger_vehicle_lanes", {}).get("ready_lanes", {}).get("delay_minutes")),
+                "passenger_ready_lanes_open": clean_value(port.get("passenger_vehicle_lanes", {}).get("ready_lanes", {}).get("lanes_open")),
+                "passenger_ready_update_time": clean_value(port.get("passenger_vehicle_lanes", {}).get("ready_lanes", {}).get("update_time")),
+
+                "passenger_sentri_delay_minutes": clean_value(port.get("passenger_vehicle_lanes", {}).get("NEXUS_SENTRI_lanes", {}).get("delay_minutes")),
+                "passenger_sentri_lanes_open": clean_value(port.get("passenger_vehicle_lanes", {}).get("NEXUS_SENTRI_lanes", {}).get("lanes_open")),
+                "passenger_sentri_update_time": clean_value(port.get("passenger_vehicle_lanes", {}).get("NEXUS_SENTRI_lanes", {}).get("update_time")),
+
+                "commercial_standard_delay_minutes": clean_value(port.get("commercial_vehicle_lanes", {}).get("standard_lanes", {}).get("delay_minutes")),
+                "commercial_standard_lanes_open": clean_value(port.get("commercial_vehicle_lanes", {}).get("standard_lanes", {}).get("lanes_open")),
+                "commercial_standard_update_time": clean_value(port.get("commercial_vehicle_lanes", {}).get("standard_lanes", {}).get("update_time")),
+
+                "commercial_fast_delay_minutes": clean_value(port.get("commercial_vehicle_lanes", {}).get("FAST_lanes", {}).get("delay_minutes")),
+                "commercial_fast_lanes_open": clean_value(port.get("commercial_vehicle_lanes", {}).get("FAST_lanes", {}).get("lanes_open")),
+                "commercial_fast_update_time": clean_value(port.get("commercial_vehicle_lanes", {}).get("FAST_lanes", {}).get("update_time")),
+
+                "pedestrian_standard_delay_minutes": clean_value(port.get("pedestrian_lanes", {}).get("standard_lanes", {}).get("delay_minutes")),
+                "pedestrian_standard_lanes_open": clean_value(port.get("pedestrian_lanes", {}).get("standard_lanes", {}).get("lanes_open")),
+                "pedestrian_standard_update_time": clean_value(port.get("pedestrian_lanes", {}).get("standard_lanes", {}).get("update_time")),
+
+                "pedestrian_ready_delay_minutes": clean_value(port.get("pedestrian_lanes", {}).get("ready_lanes", {}).get("delay_minutes")),
+                "pedestrian_ready_lanes_open": clean_value(port.get("pedestrian_lanes", {}).get("ready_lanes", {}).get("lanes_open")),
+                "pedestrian_ready_update_time": clean_value(port.get("pedestrian_lanes", {}).get("ready_lanes", {}).get("update_time")),
+
+                "pedestrian_sentri_delay_minutes": clean_value(port.get("pedestrian_lanes", {}).get("sentri_lanes", {}).get("delay_minutes")),
+                "pedestrian_sentri_lanes_open": clean_value(port.get("pedestrian_lanes", {}).get("sentri_lanes", {}).get("lanes_open")),
+                "pedestrian_sentri_update_time": clean_value(port.get("pedestrian_lanes", {}).get("sentri_lanes", {}).get("update_time")),
+
+                "pedestrian_ready_sentri_delay_minutes": clean_value(port.get("pedestrian_lanes", {}).get("ready_sentri_lanes", {}).get("delay_minutes")),
+                "pedestrian_ready_sentri_lanes_open": clean_value(port.get("pedestrian_lanes", {}).get("ready_sentri_lanes", {}).get("lanes_open")),
+                "pedestrian_ready_sentri_update_time": clean_value(port.get("pedestrian_lanes", {}).get("ready_sentri_lanes", {}).get("update_time")),
+
+                "full_xml": port,
+            }
+
+            item = {k: (v if v not in ("", None) else None) if not isinstance(v, (int, float)) else v for k, v in item.items()}
+
+            supabase.table("border_wait_history").insert(item).execute()
+            inserted += 1
+
+        return {"inserted": inserted, "skipped": skipped}
+
+    except Exception as e:
+        return {"error": str(e)}
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     print(f"✅ Starting app on port {port}")

@@ -27,6 +27,8 @@ interface CommercialVehicleLanes {
 interface PedestrianLanes {
   standard_lanes?: LaneDetail;
   ready_lanes?: LaneDetail;
+  sentri_lanes?: LaneDetail;
+  ready_sentri_lanes?: LaneDetail;
 }
 
 interface WaitTimeItem {

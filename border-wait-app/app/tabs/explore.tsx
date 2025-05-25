@@ -217,49 +217,50 @@ export default function ExploreScreen() {
     ? moment(lastFetched).fromNow()
     : '';
 
+  // Helper for formatting
+  const formatDelay = (delay: any) =>
+    delay === null || delay === undefined || delay === '' ? null : parseInt(delay, 10);
+
+  // Mapping lane keys to display names
+  const labelMap: Record<string, string> = {
+    standard_lanes: 'General',
+    ready_lanes: 'ReadyLane',
+    sentri_lanes: 'SENTRI',
+    NEXUS_lanes: 'NEXUS',
+    FAST_lanes: 'FAST',
+  };
+
+  // Helper to format lane info
+  const formatLaneInfo = (delay: any, lanes: any) => {
+    const parsedDelay = typeof delay === 'string' ? parseInt(delay) : delay;
+    const parsedLanes = typeof lanes === 'string' ? parseInt(lanes) : lanes;
+    const hasDelay = typeof parsedDelay === 'number' && !isNaN(parsedDelay);
+    const hasLanes = typeof parsedLanes === 'number' && !isNaN(parsedLanes) && parsedLanes >= 0;
+    if (!hasDelay && !hasLanes) return 'Not available';
+    if (hasDelay && hasLanes) return `${parsedDelay} min delay • ${parsedLanes} lane${parsedLanes === 1 ? '' : 's'} open`;
+    if (hasDelay) return `${parsedDelay} min delay`;
+    if (hasLanes) return `${parsedLanes} lane${parsedLanes === 1 ? '' : 's'} open`;
+    return 'Not available';
+  };
+
+  // Helper to render a lane group dynamically
+  const renderLaneGroup = (laneGroup: any) => {
+    if (!laneGroup) return (
+      <Text style={styles.noData}>No data</Text>
+    );
+    return Object.keys(laneGroup).map((laneKey) => {
+      const laneDetail = laneGroup[laneKey];
+      const label = labelMap[laneKey] || laneKey.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      return (
+        <Text style={styles.text} key={laneKey}>
+          <Text style={{ fontWeight: 'bold' }}>{label}:</Text>
+          <Text> {formatLaneInfo(formatDelay(laneDetail?.delay_minutes), laneDetail?.lanes_open)}</Text>
+        </Text>
+      );
+    });
+  };
+
   const renderItem = ({ item }: { item: WaitTimeItem }) => {
-    // Helper for formatting
-    const formatDelay = (delay: any) =>
-      delay === null || delay === undefined || delay === '' ? null : parseInt(delay, 10);
-
-    // Commercial Vehicles
-    const commGenDelay = formatDelay(item?.commercial_vehicle_lanes?.standard_lanes?.delay_minutes);
-    const commGenLanes = item?.commercial_vehicle_lanes?.standard_lanes?.lanes_open;
-    const commFastDelay = formatDelay(item?.commercial_vehicle_lanes?.FAST_lanes?.delay_minutes);
-    const commFastLanes = item?.commercial_vehicle_lanes?.FAST_lanes?.lanes_open;
-
-    // Passenger Vehicles
-    const passGenDelay = formatDelay(item?.passenger_vehicle_lanes?.standard_lanes?.delay_minutes);
-    const passGenLanes = item?.passenger_vehicle_lanes?.standard_lanes?.lanes_open;
-    const passReadyDelay = formatDelay(item?.passenger_vehicle_lanes?.ready_lanes?.delay_minutes);
-    const passReadyLanes = item?.passenger_vehicle_lanes?.ready_lanes?.lanes_open;
-    const passNexusDelay = formatDelay(item?.passenger_vehicle_lanes?.NEXUS_lanes?.delay_minutes);
-    const passNexusLanes = item?.passenger_vehicle_lanes?.NEXUS_lanes?.lanes_open;
-
-    // Pedestrian
-    const pedGenDelay = formatDelay(item?.pedestrian_lanes?.standard_lanes?.delay_minutes);
-    const pedGenLanes = item?.pedestrian_lanes?.standard_lanes?.lanes_open;
-    const pedReadyDelay = formatDelay(item?.pedestrian_lanes?.ready_lanes?.delay_minutes);
-    const pedReadyLanes = item?.pedestrian_lanes?.ready_lanes?.lanes_open;
-
-    // For the badge
-    const passengerDelay = passGenDelay;
-
-    // Updated helper for lane info display (properly handles and displays lane counts)
-    const formatLaneInfo = (delay: any, lanes: any) => {
-      const parsedDelay = typeof delay === 'string' ? parseInt(delay) : delay;
-      const parsedLanes = typeof lanes === 'string' ? parseInt(lanes) : lanes;
-
-      const hasDelay = typeof parsedDelay === 'number' && !isNaN(parsedDelay);
-      const hasLanes = typeof parsedLanes === 'number' && !isNaN(parsedLanes) && parsedLanes >= 0;
-
-      if (!hasDelay && !hasLanes) return 'Not available';
-      if (hasDelay && hasLanes) return `${parsedDelay} min delay • ${parsedLanes} lane${parsedLanes === 1 ? '' : 's'} open`;
-      if (hasDelay) return `${parsedDelay} min delay`;
-      if (hasLanes) return `${parsedLanes} lane${parsedLanes === 1 ? '' : 's'} open`;
-      return 'Not available';
-    };
-
     return (
       <Pressable
         onPress={() =>
@@ -276,34 +277,16 @@ export default function ExploreScreen() {
           </Text>
 
           {/* Passenger Vehicles */}
-          <Text style={{ fontWeight: 'bold', marginTop: 12, marginBottom: 4 }}>🚗 Passenger Vehicles</Text>
-          <Text style={styles.text}>
-            <Text>General:</Text> {formatLaneInfo(passGenDelay, passGenLanes)}
-          </Text>
-          <Text style={styles.text}>
-            <Text>ReadyLane:</Text> {formatLaneInfo(passReadyDelay, passReadyLanes)}
-          </Text>
-          <Text style={styles.text}>
-            <Text>NEXUS:</Text> {formatLaneInfo(passNexusDelay, passNexusLanes)}
-          </Text>
+          <Text style={styles.sectionHeader}>🚗 Passenger Vehicles</Text>
+          {renderLaneGroup(item.passenger_vehicle_lanes)}
 
           {/* Pedestrian */}
-          <Text style={{ fontWeight: 'bold', marginTop: 12, marginBottom: 4 }}>🚶 Pedestrian</Text>
-          <Text style={styles.text}>
-            <Text>General:</Text> {formatLaneInfo(pedGenDelay, pedGenLanes)}
-          </Text>
-          <Text style={styles.text}>
-            <Text>ReadyLane:</Text> {formatLaneInfo(pedReadyDelay, pedReadyLanes)}
-          </Text>
+          <Text style={styles.sectionHeader}>🚶 Pedestrian</Text>
+          {renderLaneGroup(item.pedestrian_lanes)}
 
           {/* Commercial Vehicles */}
-          <Text style={{ fontWeight: 'bold', marginTop: 12, marginBottom: 4 }}>🚛 Commercial Vehicles</Text>
-          <Text style={styles.text}>
-            <Text>General:</Text> {formatLaneInfo(commGenDelay, commGenLanes)}
-          </Text>
-          <Text style={styles.text}>
-            <Text>FAST:</Text> {formatLaneInfo(commFastDelay, commFastLanes)}
-          </Text>
+          <Text style={styles.sectionHeader}>🚛 Commercial Vehicles</Text>
+          {renderLaneGroup(item.commercial_vehicle_lanes)}
         </View>
       </Pressable>
     );
@@ -391,6 +374,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+  },
+  sectionHeader: {
+    fontWeight: 'bold',
+    marginTop: 12,
+    marginBottom: 4,
+    fontSize: 16,
   },
   loading: {
     flex: 1,

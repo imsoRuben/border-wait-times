@@ -229,8 +229,6 @@ def get_wait_times():
                 print(f"🔍 Unparsed keys found at {port.get('port_name')}: {unknown_keys}")
 
             summary.append(item)
-            result = supabase.table("border_wait_history").insert(item).execute()
-            print("🔁 Insert result:", result)
 
         return {
             "ports_found": len(summary),
@@ -326,8 +324,6 @@ def record_wait_times():
                 "pedestrian_ready_sentri_delay_minutes": clean_value(port.get("pedestrian_lanes", {}).get("ready_sentri_lanes", {}).get("delay_minutes")),
                 "pedestrian_ready_sentri_lanes_open": clean_value(port.get("pedestrian_lanes", {}).get("ready_sentri_lanes", {}).get("lanes_open")),
                 "pedestrian_ready_sentri_update_time": clean_value(port.get("pedestrian_lanes", {}).get("ready_sentri_lanes", {}).get("update_time")),
-
-                "full_xml": port,
             }
 
             item = {k: (v if v not in ("", None) else None) if not isinstance(v, (int, float)) else v for k, v in item.items()}

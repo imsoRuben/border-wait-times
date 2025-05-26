@@ -3,7 +3,11 @@ import requests
 def main():
     try:
         r = requests.post("https://border-wait-times.onrender.com/record-wait-times")
-        print(f"Status: {r.status_code}, Response: {r.json()}")
+        try:
+            data = r.json()
+        except ValueError:
+            data = r.text
+        print(f"Status: {r.status_code}, Response: {data}")
     except Exception as e:
         print(f"Error: {e}")
 

@@ -262,6 +262,10 @@ def record_wait_times():
             port_code = port.get("port_code")
             cbp_date = port.get("date")
             cbp_time = port.get("time")
+            is_stale = False
+            if cbp_time is None:
+                cbp_time = "00:00"
+                is_stale = True
 
             # Check if entry already exists
             existing = supabase.table("border_wait_history") \
@@ -324,6 +328,7 @@ def record_wait_times():
                 "pedestrian_ready_sentri_delay_minutes": clean_value(port.get("pedestrian_lanes", {}).get("ready_sentri_lanes", {}).get("delay_minutes")),
                 "pedestrian_ready_sentri_lanes_open": clean_value(port.get("pedestrian_lanes", {}).get("ready_sentri_lanes", {}).get("lanes_open")),
                 "pedestrian_ready_sentri_update_time": clean_value(port.get("pedestrian_lanes", {}).get("ready_sentri_lanes", {}).get("update_time")),
+                "stale": is_stale,
             }
 
             item = {k: (v if v not in ("", None) else None) if not isinstance(v, (int, float)) else v for k, v in item.items()}

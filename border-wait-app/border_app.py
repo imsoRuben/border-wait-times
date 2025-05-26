@@ -279,6 +279,7 @@ def record_wait_times():
                 skipped += 1
                 continue
 
+            # Build initial item dict
             item = {
                 "crossing_name": port.get("crossing_name", ""),
                 "port_name": port.get("port_name", ""),
@@ -288,7 +289,7 @@ def record_wait_times():
                 "hours": port.get("hours", ""),
                 "border": port.get("border", ""),
                 "date": cbp_date or None,
-                "time": cbp_time,
+                "time": cbp_time,  # ensure this is set to "00:00" if cbp_time was None above
                 "notice": port.get("construction_notice", ""),
                 "note": port.get("note", ""),
                 "port_status": port.get("port_status", ""),
@@ -331,9 +332,12 @@ def record_wait_times():
                 "stale": is_stale,
             }
 
-            item = {k: (v if v not in ("", None) else None) if not isinstance(v, (int, float)) else v for k, v in item.items()}
+            # Clean values (normalize empty strings to None, but preserve "00:00" for time)
+            cleaned_item = {k: (v if v not in ("", None) else None) if not isinstance(v, (int, float)) else v for k, v in item.items()}
+            # Explicitly ensure time is set to cbp_time (which is "00:00" if it was None originally)
+            cleaned_item["time"] = cbp_time
 
-            supabase.table("border_wait_history").insert(item).execute()
+            supabase.table("border_wait_history").insert(cleaned_item).execute()
             inserted += 1
 
         return {"inserted": inserted, "skipped": skipped}

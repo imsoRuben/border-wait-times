@@ -288,7 +288,7 @@ def record_wait_times():
                 "hours": port.get("hours", ""),
                 "border": port.get("border", ""),
                 "date": cbp_date or None,
-                "time": cbp_time or None,
+                "time": cbp_time,
                 "notice": port.get("construction_notice", ""),
                 "note": port.get("note", ""),
                 "port_status": port.get("port_status", ""),

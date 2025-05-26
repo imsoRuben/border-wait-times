@@ -270,6 +270,11 @@ def record_wait_times():
                         .get("update_time")
                 )
 
+            # Add diagnostic logging before checking if cbp_time is None
+            if cbp_time is None:
+                print(f"⚠️ No cbp_time found for port: {port.get('port_name')}")
+                print(f"🔎 Raw port: {port}")
+
             is_stale = cbp_time is None
 
             if is_stale:
@@ -287,7 +292,7 @@ def record_wait_times():
                 skipped += 1
                 continue
 
-            # Build initial item dict
+            # Build initial item dict, now including full_xml for all records
             item = {
                 "crossing_name": port.get("crossing_name", ""),
                 "port_name": port.get("port_name", ""),
@@ -338,6 +343,7 @@ def record_wait_times():
                 "pedestrian_ready_sentri_lanes_open": clean_value(port.get("pedestrian_lanes", {}).get("ready_sentri_lanes", {}).get("lanes_open")),
                 "pedestrian_ready_sentri_update_time": clean_value(port.get("pedestrian_lanes", {}).get("ready_sentri_lanes", {}).get("update_time")),
                 "stale": is_stale,
+                "full_xml": port,
             }
 
             # Clean values (normalize empty strings to None, but preserve "00:00" for time)

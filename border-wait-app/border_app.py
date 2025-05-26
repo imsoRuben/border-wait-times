@@ -262,10 +262,18 @@ def record_wait_times():
             port_code = port.get("port_code")
             cbp_date = port.get("date")
             cbp_time = port.get("time")
-            is_stale = False
-            if cbp_time is None:
+
+            if not cbp_time:
+                cbp_time = (
+                    port.get("passenger_vehicle_lanes", {})
+                        .get("standard_lanes", {})
+                        .get("update_time")
+                )
+
+            is_stale = cbp_time is None
+
+            if is_stale:
                 cbp_time = "00:00"
-                is_stale = True
 
             # Check if entry already exists
             existing = supabase.table("border_wait_history") \
@@ -337,6 +345,8 @@ def record_wait_times():
             # Explicitly ensure time is set to cbp_time (which is "00:00" if it was None originally)
             cleaned_item["time"] = cbp_time
 
+            if cleaned_item["time"] is None:
+                cleaned_item["time"] = "00:00"
             supabase.table("border_wait_history").insert(cleaned_item).execute()
             inserted += 1
 
